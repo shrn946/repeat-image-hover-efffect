@@ -1,11 +1,10 @@
 <?php
 /*
-Plugin Name:Repeat Image Hover Effect
+Plugin Name: Repeat Image Hover Effect
 Description: Adds a shortcode to display a repeating visual effect.
-Version: 1.0
+Version: 1.1
 Author: WP Design Lab
 */
-
 
 if (!defined('ABSPATH')) exit;
 
@@ -22,9 +21,8 @@ add_action('wp_enqueue_scripts', 'rep_effect_enqueue_assets');
 
 
 // ============================
-// Register Settings Page
+// Admin Menu & Settings
 // ============================
-
 function rep_effect_register_settings_menu() {
     add_options_page('Rep Effect Images', 'Rep Effect Images', 'manage_options', 'rep-effect-settings', 'rep_effect_settings_page');
 }
@@ -48,23 +46,33 @@ function rep_effect_settings_page() {
 function rep_effect_register_settings() {
     register_setting('rep_effect_settings', 'rep_effect_images', [
         'type' => 'array',
-        'sanitize_callback' => 'rep_effect_sanitize_images'
+        'sanitize_callback' => 'rep_effect_sanitize_images',
     ]);
 
     add_settings_section('rep_effect_main_section', '', null, 'rep-effect-settings');
 
-    add_settings_field('rep_effect_images_field', 'Upload Images', 'rep_effect_images_field_callback', 'rep-effect-settings', 'rep_effect_main_section');
+    add_settings_field(
+        'rep_effect_images_field',
+        'Upload Images',
+        'rep_effect_images_field_callback',
+        'rep-effect-settings',
+        'rep_effect_main_section'
+    );
 }
 add_action('admin_init', 'rep_effect_register_settings');
 
 add_action('admin_enqueue_scripts', function() {
     wp_enqueue_style('dashicons');
+    wp_enqueue_media();
 });
 
-
+// ============================
+// Settings Field Callback
+// ============================
 function rep_effect_images_field_callback() {
     $images = get_option('rep_effect_images', []);
-    wp_enqueue_media();
+    if (!is_array($images)) $images = [];
+
     ?>
     <style>
         .rep-effect-images-wrapper {
@@ -76,10 +84,9 @@ function rep_effect_images_field_callback() {
             width: 220px;
             border: 1px solid #ddd;
             padding: 10px;
-            border-radius: 6px;
             background: #fafafa;
+            border-radius: 6px;
             position: relative;
-            box-shadow: 0 0 4px rgba(0,0,0,0.05);
         }
         .rep-effect-preview {
             width: 100%;
@@ -92,7 +99,6 @@ function rep_effect_images_field_callback() {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
         }
         .rep-effect-remove-icon-wrap {
             position: absolute;
@@ -116,19 +122,19 @@ function rep_effect_images_field_callback() {
 
     <div id="rep-effect-images-container" class="rep-effect-images-wrapper">
         <?php foreach ($images as $index => $url): ?>
-            <div class="rep-effect-image-block">
-                <div class="rep-effect-remove-icon-wrap">
-                    <span class="dashicons dashicons-trash rep-effect-remove-icon" title="Remove"></span>
-                </div>
-                <input type="hidden" name="rep_effect_images[]" value="<?php echo esc_url($url); ?>" />
-                <div class="rep-effect-preview">
-                    <?php if (!empty($url)): ?>
+            <?php if (!empty($url)): ?>
+                <div class="rep-effect-image-block">
+                    <div class="rep-effect-remove-icon-wrap">
+                        <span class="dashicons dashicons-trash rep-effect-remove-icon" title="Remove"></span>
+                    </div>
+                    <input type="hidden" name="rep_effect_images[]" value="<?php echo esc_url($url); ?>" />
+                    <div class="rep-effect-preview">
                         <img src="<?php echo esc_url($url); ?>" alt="Preview" />
-                    <?php endif; ?>
+                    </div>
+                    <button class="button rep-effect-upload-button" style="margin-top:10px;">Upload</button>
+                    <span class="rep-effect-shortcode">Shortcode: <code>[rep_effect id="<?php echo $index; ?>"]</code></span>
                 </div>
-                <button class="button rep-effect-upload-button" style="margin-top:10px;">Upload</button>
-                <span class="rep-effect-shortcode">Shortcode: <code>[rep_effect id="<?php echo $index; ?>"]</code></span>
-            </div>
+            <?php endif; ?>
         <?php endforeach; ?>
     </div>
 
@@ -137,14 +143,14 @@ function rep_effect_images_field_callback() {
     <script>
     jQuery(document).ready(function($) {
         function mediaUploader(input, preview) {
-            var frame = wp.media({
+            const frame = wp.media({
                 title: 'Select or Upload Image',
                 button: { text: 'Use this image' },
                 multiple: false
             });
 
             frame.on('select', function() {
-                var attachment = frame.state().get('selection').first().toJSON();
+                const attachment = frame.state().get('selection').first().toJSON();
                 input.val(attachment.url);
                 preview.html('<img src="' + attachment.url + '" alt="Preview" />');
             });
@@ -154,21 +160,20 @@ function rep_effect_images_field_callback() {
 
         $(document).on('click', '.rep-effect-upload-button', function(e) {
             e.preventDefault();
-            var block = $(this).closest('.rep-effect-image-block');
-            var input = block.find('input[type="hidden"]');
-            var preview = block.find('.rep-effect-preview');
+            const block = $(this).closest('.rep-effect-image-block');
+            const input = block.find('input[type="hidden"]');
+            const preview = block.find('.rep-effect-preview');
             mediaUploader(input, preview);
         });
 
-        $(document).on('click', '.rep-effect-remove-icon', function(e) {
-            e.preventDefault();
+        $(document).on('click', '.rep-effect-remove-icon', function() {
             $(this).closest('.rep-effect-image-block').remove();
             updateShortcodeIndexes();
         });
 
         $('#add-new-rep-image').on('click', function() {
-            var index = $('#rep-effect-images-container > .rep-effect-image-block').length;
-            var html = `
+            const index = $('#rep-effect-images-container .rep-effect-image-block').length;
+            const html = `
                 <div class="rep-effect-image-block">
                     <div class="rep-effect-remove-icon-wrap">
                         <span class="dashicons dashicons-trash rep-effect-remove-icon" title="Remove"></span>
@@ -192,21 +197,23 @@ function rep_effect_images_field_callback() {
 }
 
 
-
-
+// ============================
+// Sanitize Callback
+// ============================
 function rep_effect_sanitize_images($images) {
-    return array_filter(array_map('esc_url_raw', $images));
+    if (!is_array($images)) return [];
+    return array_values(array_filter(array_map('esc_url_raw', $images)));
 }
-
 
 
 // ============================
 // Shortcode Handler
 // ============================
-
 function rep_effect_shortcode($atts) {
     $atts = shortcode_atts(['id' => 0], $atts);
     $images = get_option('rep_effect_images', []);
+    if (!is_array($images)) $images = [];
+
     $id = intval($atts['id']);
 
     if (!isset($images[$id]) || empty($images[$id])) {
@@ -214,9 +221,8 @@ function rep_effect_shortcode($atts) {
     }
 
     $image_url = esc_url($images[$id]);
-	 if (is_admin()) {
-        return ''; // or return '<p>Preview disabled in admin.</p>';
-    }
+
+    if (is_admin()) return '';
 
     ob_start(); ?>
     <div class="rep-effect">
