@@ -1,0 +1,46 @@
+
+.rep-effect {
+	margin: 0;
+
+
+}
+
+.content-red {
+	flex: 1;
+	display: grid;
+	place-items: center;
+}
+
+.content-red .image {
+	margin: 0 auto;
+	display: grid;
+	cursor: pointer;
+	position: relative;
+	overflow: hidden;
+	width: min(70vmin, 370px);
+	height: min(70vmin, 370px);
+	border-radius: 50%;
+	background-size: cover;
+	background-position: 50% 50%;
+}
+
+.image__element {
+	transform-origin: inherit;
+	position: relative;
+	grid-area: 1 / 1 / 2 / 2;
+	width: 100%;
+	height: 100%;
+	will-change: transform;
+	border-radius: inherit;
+	background-size: inherit;
+	background-position: inherit;
+}
+
+@media screen and (min-width: 53em) {
+	.rep-effect  main {
+	/*	height: 100vh;*/
+		display: flex;
+		flex-direction: column;
+	}
+
+}
